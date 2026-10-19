@@ -22,7 +22,7 @@ Lokal dan publik memakai API yang berbeda melalui file environment Vite:
 - `npm run dev` memakai `.env.local`: `http://localhost:8020/api`.
 - Build publik memakai `VITE_API_BASE_URL=https://api.londrian.my.id/api`.
 
-Untuk Cloudflare Workers, isi **Build variable** `VITE_API_BASE_URL` dengan `https://api.londrian.my.id/api` lalu deploy ulang Worker. File `.env.production` lokal tidak dikirim ke Git; gunakan `.env.production.example` sebagai acuan aman.
+Untuk Cloudflare Workers, isi **Build variable** `VITE_API_BASE_URL` dengan `https://api.londrian.my.id/api` lalu deploy ulang Worker. File `.env.production` hanya menyimpan URL publik dan sengaja boleh dilacak Git; `.env.local` tetap khusus mesin lokal dan diabaikan Git.
 
 Londrian memakai Sanctum personal access token melalui header Bearer. Jangan mengaktifkan `withCredentials`, `withXSRFToken`, atau konfigurasi Sanctum SPA berbasis cookie hanya untuk frontend ini.
 

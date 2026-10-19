@@ -1,7 +1,11 @@
 import axios from 'axios'
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8020/api').replace(/\/$/, '')
-const API_ORIGIN = new URL(API_BASE, window.location.origin).origin
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL
+if (!rawBaseUrl) {
+  throw new Error('VITE_API_BASE_URL belum dikonfigurasi.')
+}
+const API_BASE = rawBaseUrl.replace(/\/+$/, '')
+const API_ORIGIN = new URL(API_BASE).origin
 let outletContextId = null
 let accessToken = sessionStorage.getItem('laundrian_access_token') || ''
 const apiClient = axios.create({
