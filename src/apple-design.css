@@ -308,6 +308,14 @@ tbody tr:hover { background: #faf9f5 !important; }
 }
 
 @media (max-width: 700px) {
+  .app-shell .dashboard-view .dashboard-work {
+    padding: 13px !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 13px !important;
+    background: #fff !important;
+    box-shadow: 0 1px 2px #27261f06 !important;
+  }
+  .app-shell .dashboard-view .dashboard-work .dashboard-section-heading { margin-bottom: 12px; }
   .modal-backdrop { align-items: flex-end !important; padding: 0 !important; }
   .modal { animation-name: laundrian-sheet-up; }
   .modal-body { padding: 16px !important; }

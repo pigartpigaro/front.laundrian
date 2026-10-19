@@ -29,3 +29,9 @@ Londrian adalah frontend POS laundry Vue 3 + Vite yang mengikuti blueprint `../l
 - Build: `npm run build`; preview build: `npm run preview`.
 - Hentikan server dengan `Ctrl+C`.
 - `.env.example` memakai `VITE_API_BASE_URL=http://localhost:8020/api`; salin ke `.env` lokal bila URL berbeda.
+
+## Git dan release
+
+- Bekerja pada `develop`; `main` hanya menerima hasil Pull Request produksi.
+- Jalankan `npm run hooks:install` sekali pada clone baru. Hook `.githooks` menolak commit atau push langsung ke `main`/`master`, dan tidak memblokir branch Pull Request.
+- `npm run build` hanya melakukan build. `npm run release` memerlukan working tree bersih serta `develop` yang sudah sinkron di origin, lalu memvalidasi build pada worktree sementara tanpa merge atau push. Buat PR `develop` ke `main` setelah validasi dan hanya lanjutkan setelah ada persetujuan eksplisit.
