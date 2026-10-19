@@ -13,8 +13,13 @@ function git(args, options = {}) {
 }
 
 function run(command, args, cwd) {
-  const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: false })
-  if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} gagal.`)
+  const result = spawnSync(command, args, {
+    cwd,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  })
+  if (result.error) throw new Error(`${command} ${args.join(' ')} gagal: ${result.error.message}`)
+  if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} gagal (kode ${result.status}).`)
 }
 
 try {
