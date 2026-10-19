@@ -15,6 +15,17 @@ npm run dev
 
 Frontend tersedia di `http://localhost:5174`, API default di `http://localhost:8020/api`. Untuk membuka dari HP pada Wi-Fi yang sama, atur `VITE_API_BASE_URL` di `.env.local` ke `http://<IP-komputer>:8020/api`, jalankan Vite dengan host `0.0.0.0` (sudah diatur pada script `dev`), dan izinkan origin frontend HP itu pada `FRONTEND_URL` backend. Contoh lokal: `http://192.168.1.40:5174` dan `http://192.168.1.40:8020/api`. Alamat IP bergantung jaringan komputer.
 
+## Environment publik
+
+Lokal dan publik memakai API yang berbeda melalui file environment Vite:
+
+- `npm run dev` memakai `.env.local`: `http://localhost:8020/api`.
+- Build publik memakai `VITE_API_BASE_URL=https://api.londrian.my.id/api`.
+
+Untuk Cloudflare Workers, isi **Build variable** `VITE_API_BASE_URL` dengan `https://api.londrian.my.id/api` lalu deploy ulang Worker. File `.env.production` lokal tidak dikirim ke Git; gunakan `.env.production.example` sebagai acuan aman.
+
+Londrian memakai Sanctum personal access token melalui header Bearer. Jangan mengaktifkan `withCredentials`, `withXSRFToken`, atau konfigurasi Sanctum SPA berbasis cookie hanya untuk frontend ini.
+
 Login memakai username dan password minimal 8 karakter. Frontend memakai token Bearer Sanctum yang disimpan selama tab aktif dan mengirimkannya dengan Axios; logout mencabut token dari backend. Halaman login juga menerima pendaftaran outlet demo; akun owner langsung masuk setelah pendaftaran. Superadmin login dengan akun yang dibuat dari backend, lalu memilih outlet untuk membuka modul operasionalnya. Jalankan backend dan migrasi mengikuti [panduan API](../api.laundrian/README.md). Pemeriksaan API: `http://localhost:8020/up`.
 
 Build produksi dan preview:
