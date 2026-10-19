@@ -5,6 +5,11 @@ import PageHeader from '../../components/PageHeader.vue'
 const { data, money, openExpenseForm } = inject('laundrian')
 const today = new Date()
 const dateValue = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+const dateLabel = value => {
+  if (!value) return 'â€”'
+  const date = new Date(`${value}T00:00:00`)
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
+}
 const from = ref(dateValue(new Date(today.getFullYear(), today.getMonth(), 1)))
 const to = ref(dateValue(today))
 const visibleExpenses = computed(() => data.value.expenses.filter(expense => (!from.value || expense.date >= from.value) && (!to.value || expense.date <= to.value)))
@@ -30,8 +35,15 @@ const topCategory = computed(() => {
     <div class="expense-date-filters"><label>Dari tanggal<input v-model="from" type="date" /></label><label>Sampai tanggal<input v-model="to" type="date" :min="from" /></label></div>
     <div v-if="visibleExpenses.length" class="table-wrap">
       <table><thead><tr><th>TANGGAL</th><th>KATEGORI</th><th>KETERANGAN</th><th>NOMINAL</th></tr></thead>
-        <tbody><tr v-for="expense in visibleExpenses" :key="expense.id"><td>{{ expense.date }}</td><td><span class="category-tag">{{ expense.category }}</span></td><td>{{ expense.description }}</td><td><b>{{ money(expense.amount) }}</b></td></tr></tbody>
+        <tbody><tr v-for="expense in visibleExpenses" :key="expense.id"><td>{{ dateLabel(expense.date) }}</td><td><span class="category-tag">{{ expense.category || 'LAINNYA' }}</span></td><td>{{ expense.description || 'â€”' }}</td><td><b>{{ money(expense.amount) }}</b></td></tr></tbody>
       </table>
+    </div>
+    <div v-if="visibleExpenses.length" class="expense-cards" aria-label="Daftar pengeluaran">
+      <article v-for="expense in visibleExpenses" :key="expense.id" class="expense-card">
+        <div class="expense-card-head"><span class="category-tag">{{ expense.category || 'LAINNYA' }}</span><strong>{{ money(expense.amount) }}</strong></div>
+        <b class="expense-card-description">{{ expense.description || 'Tanpa keterangan' }}</b>
+        <small>{{ dateLabel(expense.date) }}</small>
+      </article>
     </div>
     <div v-else class="empty-state"><b>{{ data.expenses.length ? 'Tidak ada pengeluaran pada rentang ini' : 'Belum ada pengeluaran' }}</b><span>{{ data.expenses.length ? 'Pilih rentang tanggal lain untuk melihat catatan.' : 'Catat biaya operasional untuk mulai membuat daftar.' }}</span><button v-if="!data.expenses.length" class="button secondary" @click="openExpenseForm">Catat pengeluaran</button></div>
   </section>

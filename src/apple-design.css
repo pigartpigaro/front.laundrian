@@ -236,6 +236,12 @@ tbody tr:hover { background: #faf9f5 !important; }
 .active-label i { background: #d2a500 !important; }
 
 .customer-card, .transaction-card { color: var(--ink) !important; background: #fff !important; border-color: var(--line) !important; border-radius: 12px !important; }
+.expense-cards { display: none; }
+.expense-card { display: grid; gap: 8px; padding: 14px; }
+.expense-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.expense-card-head strong { color: #403514; font-size: 15px; font-variant-numeric: tabular-nums; }
+.expense-card-description { color: var(--ink); font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.expense-card small { color: var(--muted); font-size: 12px; }
 .card-identity b { color: var(--ink) !important; font-size: 14px !important; }
 .card-identity small, .secondary-detail { color: var(--muted) !important; font-size: 12px !important; }
 .mobile-card-details { color: #615e53 !important; border-color: var(--line) !important; font-size: 13px !important; }
@@ -315,6 +321,12 @@ tbody tr:hover { background: #faf9f5 !important; }
 @media (prefers-reduced-motion: reduce) {
   .modal-backdrop, .modal, .toast { animation: none !important; }
   .sidebar { transition: none !important; }
+}
+
+@media (max-width: 700px) {
+  .expense-panel .table-wrap { display: none !important; }
+  .expense-cards { display: grid !important; gap: 10px; padding: 0 14px 14px; }
+  .expense-card { border: 1px solid var(--line); border-radius: 12px; background: #fff; }
 }
 
 /* Small finishing details for the screens people work through all day. */

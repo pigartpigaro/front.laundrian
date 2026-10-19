@@ -26,7 +26,13 @@ export function normalizeTransaction(transaction) {
 }
 
 export function normalizeExpense(expense) {
-  return { id: expense.id, category: expense.kategori, description: expense.keterangan, amount: Number(expense.nominal || 0), date: expense.tanggal }
+  return {
+    id: expense.id,
+    category: expense.kategori ?? expense.category ?? 'LAINNYA',
+    description: expense.keterangan ?? expense.description ?? '',
+    amount: Number(expense.nominal ?? expense.amount ?? 0),
+    date: String(expense.tanggal ?? expense.date ?? '').slice(0, 10),
+  }
 }
 
 export function unwrapList(result) { return Array.isArray(result?.data) ? result.data : [] }
