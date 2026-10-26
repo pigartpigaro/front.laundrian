@@ -62,22 +62,14 @@ Kontrak endpoint/payload ada di [API docs](../api.laundrian/docs/api.md). Jangan
 
 ## Git dan release
 
-Kerja harian selalu di branch `develop`; `main` adalah production. Setelah clone baru, pasang hook sekali:
-
-```powershell
-npm run hooks:install
-```
-
-Alur kerja harian:
+Kerja harian di `develop`. Setelah commit dan push perubahan ke origin, promosikan dengan satu perintah:
 
 ```powershell
 git switch develop
-git pull --ff-only origin develop
-# ubah kode, lalu jalankan pemeriksaan yang diperlukan
-npm run build
 git add .
 git commit -m "jelaskan perubahan"
 git push origin develop
+npm run release
 ```
 
-Untuk validasi release jalankan `npm run release` dari `develop`. Script memeriksa working tree dan sinkronisasi branch, lalu menjalankan build di worktree sementara. **Perintah ini tidak merge atau push ke `main`.** Setelah validasi, promosikan `develop` ke `main` lewat Pull Request GitHub dan ikuti persetujuan serta proteksi branch production.
+`npm run release` (alias `npm run deploy`) memastikan working tree bersih dan sinkronisasi `develop`, membuat worktree sementara dari `origin/main`, memastikan fast-forward, lalu menjalankan `npm ci` dan build production. Jika lolos, script mendorong hasilnya ke `main`; branch aktif tetap `develop`. `npm run release -- --dry-run` memvalidasi tanpa push. `npm run build` hanya membangun frontend. Push manual ke `main`/`master` ditolak hook lokal.

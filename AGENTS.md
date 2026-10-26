@@ -32,6 +32,6 @@ Londrian adalah frontend POS laundry Vue 3 + Vite yang mengikuti blueprint `../l
 
 ## Git dan release
 
-- Bekerja pada `develop`; `main` hanya menerima hasil Pull Request produksi.
-- Jalankan `npm run hooks:install` sekali pada clone baru. Hook `.githooks` menolak commit atau push langsung ke `main`/`master`, dan tidak memblokir branch Pull Request.
-- `npm run build` hanya melakukan build. `npm run release` memerlukan working tree bersih serta `develop` yang sudah sinkron di origin, lalu memvalidasi build pada worktree sementara tanpa merge atau push. Buat PR `develop` ke `main` setelah validasi dan hanya lanjutkan setelah ada persetujuan eksplisit.
+- Bekerja pada `develop`; `main` adalah production.
+- Jalankan `npm run hooks:install` sekali pada clone baru. Hook `.githooks` menolak commit dan push manual ke `main`/`master`; hanya push `main` dari script release terverifikasi yang diizinkan.
+- `npm run build` hanya melakukan build. `npm run release` (alias `npm run deploy`) mensyaratkan working tree bersih dan `develop` sama dengan `origin/develop`, lalu memeriksa fast-forward dan menjalankan `npm ci` serta build pada worktree sementara dari `origin/main`. Jika lolos, script fast-forward dan push ke `main`; branch aktif tetap `develop`. Gunakan `npm run release -- --dry-run` untuk validasi tanpa push.
