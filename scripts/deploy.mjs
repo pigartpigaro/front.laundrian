@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -30,6 +30,22 @@ function run(command, args, cwd, env = {}) {
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} gagal (kode ${result.status}).`)
 }
 
+function getProductionApiBaseUrl() {
+  let value = process.env.VITE_API_BASE_URL?.trim()
+  if (!value && existsSync(join(root, '.env.production'))) {
+    const source = readFileSync(join(root, '.env.production'), 'utf8')
+    const match = source.match(/^\s*VITE_API_BASE_URL\s*=\s*(.*?)\s*$/m)
+    value = match?.[1]?.trim().replace(/^("|')(.*)\1$/, '$2')
+  }
+  if (!value) throw new Error('VITE_API_BASE_URL belum diatur. Isi environment atau file lokal .env.production.')
+
+  const parsed = new URL(value)
+  if (!['http:', 'https:'].includes(parsed.protocol) || ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname)) {
+    throw new Error('VITE_API_BASE_URL release harus memakai URL API production, bukan localhost.')
+  }
+  return value.replace(/\/+$/, '')
+}
+
 try {
   if (git(['status', '--porcelain'])) throw new Error('working tree harus bersih.')
   if (git(['branch', '--show-current']) !== 'develop') throw new Error('jalankan release dari branch develop.')
@@ -46,7 +62,7 @@ try {
   run('git', ['worktree', 'add', '--detach', tempWorktree, `origin/${target}`], root)
   run('git', ['merge', '--ff-only', 'origin/develop'], tempWorktree)
   run(npm, ['ci'], tempWorktree)
-  run(npm, ['run', 'build'], tempWorktree)
+  run(npm, ['run', 'build'], tempWorktree, { VITE_API_BASE_URL: getProductionApiBaseUrl() })
 
   if (dryRun) {
     console.log(`\nDry run selesai. Build lolos; main tidak di-push. ${commitsToRelease} commit siap dirilis.`)
