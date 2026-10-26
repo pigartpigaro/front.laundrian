@@ -15,14 +15,9 @@ npm run dev
 
 Frontend tersedia di `http://localhost:5174`, API default di `http://localhost:8020/api`. Untuk membuka dari HP pada Wi-Fi yang sama, atur `VITE_API_BASE_URL` di `.env.local` ke `http://<IP-komputer>:8020/api`, jalankan Vite dengan host `0.0.0.0` (sudah diatur pada script `dev`), dan izinkan origin frontend HP itu pada `FRONTEND_URL` backend. Contoh lokal: `http://192.168.1.40:5174` dan `http://192.168.1.40:8020/api`. Alamat IP bergantung jaringan komputer.
 
-## Environment publik
+## Environment lokal
 
-Lokal dan publik memakai API yang berbeda melalui file environment Vite:
-
-- `npm run dev` memakai `.env.local`: `http://localhost:8020/api`.
-- Build publik memakai `VITE_API_BASE_URL=https://api.londrian.my.id/api`.
-
-Untuk Cloudflare Workers, isi **Build variable** `VITE_API_BASE_URL` dengan URL API production lalu deploy ulang Worker. File `.env.production` hanya untuk build lokal dan diabaikan Git; script `npm run release` mengambil variabel dari environment atau file lokal tersebut. `.env.production.example` adalah template yang dilacak Git, sedangkan `.env.local` tetap khusus mesin lokal.
+`npm run dev` memakai `.env.local`. Gunakan alamat API lokal `http://localhost:8020/api`; file environment lokal tidak dilacak Git.
 
 Londrian memakai Sanctum personal access token melalui header Bearer. Jangan mengaktifkan `withCredentials`, `withXSRFToken`, atau konfigurasi Sanctum SPA berbasis cookie hanya untuk frontend ini.
 
