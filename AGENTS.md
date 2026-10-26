@@ -11,7 +11,7 @@ Londrian adalah frontend POS laundry Vue 3 + Vite yang mengikuti blueprint `../l
 - Status laundry dan pembayaran adalah dua hal terpisah.
 - Autentikasi memakai personal access token Sanctum melalui header `Authorization: Bearer`. Simpan token hanya di `sessionStorage`, cabut saat logout, dan jangan menyimpan data bisnis di browser storage. Setiap daftar/detail dan mutasi operasional harus memakai Laravel API.
 - Backend menjadi sumber kebenaran untuk nomor transaksi, harga, total, status laundry, dan pembayaran. Frontend hanya menghitung estimasi tampilan sebelum disimpan.
-- Jangan mengklaim pencetakan Bluetooth aktif sebelum plugin native Kotlin/Capacitor tersedia. Kegagalan print tidak boleh membatalkan transaksi.
+- Printer BLE menggunakan Web Bluetooth hanya pada browser yang mendukungnya dan origin aman (HTTPS/localhost); selalu sediakan cetak browser sebagai fallback. Jangan mengklaim hasil cetak fisik sudah terverifikasi sebelum diuji pada perangkat dan printer sebenarnya. Kegagalan print tidak boleh membatalkan transaksi.
 - Jangan menambahkan kredensial atau rahasia ke source code. Konfigurasi lokal menggunakan `.env` yang tidak di-commit.
 
 ## Kroscek UI

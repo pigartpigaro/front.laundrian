@@ -6,7 +6,7 @@ const { data, money, openExpenseForm } = inject('laundrian')
 const today = new Date()
 const dateValue = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 const dateLabel = value => {
-  if (!value) return 'â€”'
+  if (!value) return '—'
   const date = new Date(`${value}T00:00:00`)
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
 }
@@ -35,7 +35,7 @@ const topCategory = computed(() => {
     <div class="expense-date-filters"><label>Dari tanggal<input v-model="from" type="date" /></label><label>Sampai tanggal<input v-model="to" type="date" :min="from" /></label></div>
     <div v-if="visibleExpenses.length" class="table-wrap">
       <table><thead><tr><th>TANGGAL</th><th>KATEGORI</th><th>KETERANGAN</th><th>NOMINAL</th></tr></thead>
-        <tbody><tr v-for="expense in visibleExpenses" :key="expense.id"><td>{{ dateLabel(expense.date) }}</td><td><span class="category-tag">{{ expense.category || 'LAINNYA' }}</span></td><td>{{ expense.description || 'â€”' }}</td><td><b>{{ money(expense.amount) }}</b></td></tr></tbody>
+        <tbody><tr v-for="expense in visibleExpenses" :key="expense.id"><td>{{ dateLabel(expense.date) }}</td><td><span class="category-tag">{{ expense.category || 'LAINNYA' }}</span></td><td>{{ expense.description || '—' }}</td><td><b>{{ money(expense.amount) }}</b></td></tr></tbody>
       </table>
     </div>
     <div v-if="visibleExpenses.length" class="expense-cards" aria-label="Daftar pengeluaran">

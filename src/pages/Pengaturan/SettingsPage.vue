@@ -2,6 +2,7 @@
 import { computed, inject, reactive, ref, watch } from 'vue'
 import PageHeader from '../../components/PageHeader.vue'
 import CurrencyInput from '../../components/CurrencyInput.vue'
+import BlePrinterPanel from './BlePrinterPanel.vue'
 import { apiOrigin, requestApi, loadCursorList, logoutApi } from '../../api.js'
 
 const { data, money, settingsTab, menu, addService, notify, session, loadOperationalData, refreshOutletBranding } = inject('laundrian')
@@ -15,7 +16,7 @@ const logoInput = ref(null)
 const logoError = ref('')
 const memberPromo = reactive({ member_promo_active: false, member_promo_required_transactions: 10, member_promo_minimum_subtotal: 75000, member_promo_discount_percent: 20 })
 const website = reactive({
-  website_active: false, website_headline: '', website_description: '', website_theme: 'saffron-cream', website_hero_layout: 'horizontal', website_primary_color: '#d4a600', website_secondary_color: '#fff0b8',
+  website_active: false, website_headline: '', website_description: '', website_theme: 'saffron-cream', website_hero_layout: 'horizontal', website_primary_color: '#117DEA', website_secondary_color: '#00B1FD',
   website_about_title: '', website_about_text: '', website_services_title: '', website_services_intro: '', website_services: [], website_gallery_title: '',
   website_whatsapp_button_text: '', website_whatsapp_message: '', website_footer_text: 'Website outlet didukung oleh Laundrian', website_footer_tagline: '', website_footer_support_url: '', website_footer_support_title: 'Dukungan', website_footer_logo_mode: 'logo_tagline', website_footer_logo_size: 120, website_footer_show_logo: true, website_footer_show_support: true, website_footer_show_contact: true, website_footer_contact_title: 'Kontak outlet', website_show_services: true, website_show_about: true,
   website_show_gallery: false, website_show_location: true, website_map_url: '', website_instagram_url: '',
@@ -55,6 +56,7 @@ const employees = ref([])
 const loadingSettings = ref(false)
 const settingsError = ref('')
 const savingProfile = ref(false)
+const savingPrinterSettings = ref(false)
 const savingMemberPromo = ref(false)
 const savingWebsite = ref(false)
 const websitePreviewUrl = computed(() => {
@@ -76,6 +78,7 @@ async function loadSettings() {
   settingsError.value = ''; loadingSettings.value = true
   try {
     if (settingsTab.value === 'settings-profile') Object.assign(profile, (await requestApi('/pengaturan')).data)
+    if (settingsTab.value === 'settings-printer') Object.assign(profile, (await requestApi('/pengaturan')).data)
     if (settingsTab.value === 'settings-member-promo') Object.assign(memberPromo, (await requestApi('/pengaturan')).data)
     if (settingsTab.value === 'settings-website') {
       const settings = (await requestApi('/pengaturan')).data
@@ -86,8 +89,9 @@ async function loadSettings() {
       website.website_footer_text = settings.website_footer_text || 'Website outlet didukung oleh Laundrian'
       website.website_footer_contact_title = settings.website_footer_contact_title || 'Kontak outlet'
       website.website_theme = 'saffron-cream'
-      website.website_primary_color = settings.website_primary_color || settings.website_accent_color || '#d4a600'
-      website.website_secondary_color = settings.website_secondary_color || '#fff0b8'
+      const savedPrimaryColor = settings.website_primary_color || settings.website_accent_color
+      website.website_primary_color = !savedPrimaryColor || ['#d4a600', '#002170'].includes(savedPrimaryColor.toLowerCase()) ? '#117DEA' : savedPrimaryColor
+      website.website_secondary_color = !settings.website_secondary_color || ['#fff0b8', '#ffb900'].includes(settings.website_secondary_color.toLowerCase()) ? '#00B1FD' : settings.website_secondary_color
       Object.assign(profile, settings)
       websiteHeroImageUrl.value = settings.website_hero_image_url || ''
       websiteHeroImageFile.value = null
@@ -114,7 +118,7 @@ async function saveProfile() {
   try {
     const payload = new FormData()
     payload.append('_method', 'PUT')
-    for (const key of ['store_name', 'phone', 'address', 'receipt_footer', 'receipt_width']) payload.append(key, profile[key] ?? '')
+    for (const key of ['store_name', 'phone', 'address']) payload.append(key, profile[key] ?? '')
     if (selectedLogo.value) payload.append('logo', selectedLogo.value)
     Object.assign(profile, (await requestApi('/pengaturan', { method: 'POST', body: payload })).data)
     refreshOutletBranding?.(profile)
@@ -126,6 +130,21 @@ async function saveProfile() {
   }
   catch (error) { settingsError.value = error.message; notify(error.message, 'error') }
   finally { savingProfile.value = false }
+}
+async function savePrinterSettings() {
+  if (savingPrinterSettings.value) return
+  savingPrinterSettings.value = true
+  try {
+    const { data: savedSettings } = await requestApi('/pengaturan', {
+      method: 'PUT',
+      body: { receipt_width: profile.receipt_width, receipt_footer: profile.receipt_footer },
+    })
+    Object.assign(profile, savedSettings)
+    notify('Pengaturan nota berhasil disimpan.', 'success')
+  } catch (error) {
+    settingsError.value = error.message
+    notify(error.message, 'error')
+  } finally { savingPrinterSettings.value = false }
 }
 function selectLogo(event) {
   const file = event.target.files?.[0]
@@ -370,7 +389,7 @@ watch(settingsTab, loadSettings, { immediate: true })
   <PageHeader title="Pengaturan" description="Kelola layanan, promo, website, karyawan, dan profil outlet." />
   <div class="settings-layout">
     <nav class="settings-tabs" aria-label="Bagian pengaturan">
-      <button v-for="item in items" :key="item.id" :class="{ on: settingsTab === item.id }" :aria-current="settingsTab === item.id ? 'page' : undefined" @click="settingsTab = item.id">{{ item.label }}<span aria-hidden="true">â€º</span></button>
+      <button v-for="item in items" :key="item.id" :class="{ on: settingsTab === item.id }" :aria-current="settingsTab === item.id ? 'page' : undefined" @click="settingsTab = item.id">{{ item.label }}<svg class="settings-tab-chevron" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m6 3 5 5-5 5" /></svg></button>
     </nav>
     <section class="panel settings-panel">
       <template v-if="settingsTab === 'settings-services'">
@@ -400,26 +419,24 @@ watch(settingsTab, loadSettings, { immediate: true })
           </div>
           <label class="staff-active-toggle"><input v-model="serviceForm.active" type="checkbox" /><span>Layanan aktif untuk transaksi baru</span></label>
           <p v-if="serviceError" class="auth-error" role="alert">{{ serviceError }}</p>
-          <div class="staff-editor-actions"><button class="button secondary" type="button" @click="editingService = null">Batal</button><button class="button primary" type="submit" :disabled="savingService">{{ savingService ? 'Menyimpanâ€¦' : 'Simpan layanan' }}</button></div>
+          <div class="staff-editor-actions"><button class="button secondary" type="button" @click="editingService = null">Batal</button><button class="button primary" type="submit" :disabled="savingService">{{ savingService ? 'Menyimpan…' : 'Simpan layanan' }}</button></div>
         </form>
-        <div v-else class="empty-state"><b>Belum ada layanan</b><span>Tambahkan layanan untuk menggunakannya pada pesanan.</span><button class="button secondary" @click="addService">Tambah layanan</button></div>
+        <div v-if="!data.services.length" class="empty-state"><b>Belum ada layanan</b><span>Tambahkan layanan untuk menggunakannya pada pesanan.</span><button class="button secondary" @click="addService">Tambah layanan</button></div>
       </template>
       <div v-else-if="settingsTab === 'settings-profile'" class="settings-form-wrap">
         <div class="panel-heading"><div><h2>Profil outlet</h2><p>Data ini digunakan pada identitas outlet dan nota.</p></div></div>
-        <p v-if="loadingSettings" class="empty-state">Memuat profilâ€¦</p><p v-else-if="settingsError" class="auth-error" role="alert">{{ settingsError }}</p>
+        <p v-if="loadingSettings" class="empty-state">Memuat profil…</p><p v-else-if="settingsError" class="auth-error" role="alert">{{ settingsError }}</p>
         <form v-else class="modal-body" @submit.prevent="saveProfile">
           <label>Nama outlet<input v-model="profile.store_name" required maxlength="150" /></label>
-          <label>Logo outlet<div class="outlet-logo-control"><div class="outlet-logo-preview"><img :src="logoPreview || profileLogoUrl || '/icon/laundrian_192px.png'" alt="Pratinjau logo outlet" /></div><div class="outlet-logo-upload"><input ref="logoInput" class="outlet-logo-input" type="file" accept="image/png,image/jpeg,image/webp" :disabled="savingProfile" @change="selectLogo" /><small>JPG, PNG, atau WebP Â· Maksimal 2 MB.</small><small v-if="logoError" class="outlet-logo-error" role="alert">{{ logoError }}</small></div></div></label>
+          <label>Logo outlet<div class="outlet-logo-control"><div class="outlet-logo-preview"><img :src="logoPreview || profileLogoUrl || '/icon/laundrian_192px.png'" alt="Pratinjau logo outlet" /></div><div class="outlet-logo-upload"><input ref="logoInput" class="outlet-logo-input" type="file" accept="image/png,image/jpeg,image/webp" :disabled="savingProfile" @change="selectLogo" /><small>JPG, PNG, atau WebP · Maksimal 2 MB.</small><small v-if="logoError" class="outlet-logo-error" role="alert">{{ logoError }}</small></div></div></label>
           <label>Nomor telepon<input v-model="profile.phone" type="tel" /></label>
           <label>Alamat<textarea v-model="profile.address" rows="3"></textarea></label>
-          <label>Catatan kaki nota<textarea v-model="profile.receipt_footer" rows="2"></textarea></label>
-          <label>Lebar nota<select v-model="profile.receipt_width"><option>58mm</option><option>80mm</option></select></label>
-          <div class="modal-footer"><button class="button primary" :disabled="savingProfile">{{ savingProfile ? 'Menyimpanâ€¦' : 'Simpan profil' }}</button></div>
+          <div class="modal-footer"><button class="button primary" :disabled="savingProfile">{{ savingProfile ? 'Menyimpan…' : 'Simpan profil' }}</button></div>
         </form>
       </div>
       <div v-else-if="settingsTab === 'settings-member-promo'" class="settings-form-wrap">
         <div class="panel-heading"><div><h2>Promo Member</h2><p>Atur hadiah loyalitas yang diterapkan otomatis pada transaksi pelanggan.</p></div></div>
-        <p v-if="loadingSettings" class="empty-state" role="status">Memuat pengaturan promoÃ¢â‚¬Â¦</p>
+        <p v-if="loadingSettings" class="empty-state" role="status">Memuat pengaturan promo…</p>
         <p v-else-if="settingsError" class="auth-error" role="alert">{{ settingsError }}</p>
         <form v-else class="modal-body member-promo-form" @submit.prevent="saveMemberPromo">
           <div class="member-promo-toggle"><button class="member-promo-switch" type="button" role="switch" :aria-checked="memberPromo.member_promo_active" aria-label="Aktifkan Promo Member" @click="memberPromo.member_promo_active = !memberPromo.member_promo_active"></button><span class="member-promo-toggle-label">Aktifkan Promo Member</span></div>
@@ -430,7 +447,7 @@ watch(settingsTab, loadSettings, { immediate: true })
             <label>Diskon member (%)<input v-model.number="memberPromo.member_promo_discount_percent" type="number" min="1" max="100" step="1" required :disabled="!memberPromo.member_promo_active" /><small>Persentase potongan dari subtotal setelah diskon manual.</small></label>
           </div>
           <p class="member-promo-note">Transaksi yang memakai diskon memulai progres siklus baru bila subtotalnya memenuhi batas.</p>
-          <div class="modal-footer"><button class="button primary" type="submit" :disabled="savingMemberPromo">{{ savingMemberPromo ? 'MenyimpanÃ¢â‚¬Â¦' : 'Simpan Promo Member' }}</button></div>
+          <div class="modal-footer"><button class="button primary" type="submit" :disabled="savingMemberPromo">{{ savingMemberPromo ? 'Menyimpan…' : 'Simpan Promo Member' }}</button></div>
         </form>
       </div>
       <div v-else-if="settingsTab === 'settings-website'" class="settings-form-wrap website-settings">
@@ -458,7 +475,7 @@ watch(settingsTab, loadSettings, { immediate: true })
 
           <div v-else-if="activeWebsiteTab === 'appearance'" class="website-tab-content">
             <section class="website-setting-section"><div class="website-section-copy"><h3>Tata letak foto utama</h3><p>Atur posisi teks dan foto pada bagian pembuka website.</p></div><fieldset class="website-layout-options"><legend class="visually-hidden">Pilih tata letak foto utama</legend><label class="website-layout-option" :class="{ selected: website.website_hero_layout === 'horizontal' }"><input v-model="website.website_hero_layout" type="radio" value="horizontal" /><span class="website-layout-preview layout-preview-horizontal"><i></i><b></b></span><span><b>Horizontal</b><small>Foto memenuhi lebar halaman, teks tampil di atas foto.</small></span></label><label class="website-layout-option" :class="{ selected: website.website_hero_layout === 'vertical' }"><input v-model="website.website_hero_layout" type="radio" value="vertical" /><span class="website-layout-preview layout-preview-vertical"><i></i><b></b></span><span><b>Vertikal</b><small>Teks di samping foto, seperti tampilan sebelumnya.</small></span></label></fieldset></section>
-            <section class="website-setting-section"><div class="website-section-copy"><h3>Tema warna</h3><p>Tema dasar kunyit dan terang. Sesuaikan warna primer serta sekundernya.</p></div><div class="website-color-settings"><div class="website-color-preview"><span :style="{ backgroundColor: website.website_primary_color }">Primer</span><span :style="{ backgroundColor: website.website_secondary_color }">Sekunder</span><b>Kunyit & terang</b></div><div class="website-color-controls"><label>Warna primer<input v-model="website.website_primary_color" type="color" aria-label="Pilih warna primer website" /><small>Untuk tombol dan aksen utama.</small></label><label>Warna sekunder<input v-model="website.website_secondary_color" type="color" aria-label="Pilih warna sekunder website" /><small>Untuk ornamen dan aksen pendukung.</small></label></div></div></section>
+            <section class="website-setting-section"><div class="website-section-copy"><h3>Tema warna</h3><p>Tema dasar biru elektrik dan terang. Sesuaikan warna primer serta sekundernya.</p></div><div class="website-color-settings"><div class="website-color-preview"><span :style="{ backgroundColor: website.website_primary_color }">Primer</span><span :style="{ backgroundColor: website.website_secondary_color }">Sekunder</span><b>Biru elektrik & cyan</b></div><div class="website-color-controls"><label>Warna primer<input v-model="website.website_primary_color" type="color" aria-label="Pilih warna primer website" /><small>Untuk tombol dan aksen utama.</small></label><label>Warna sekunder<input v-model="website.website_secondary_color" type="color" aria-label="Pilih warna sekunder website" /><small>Untuk ornamen dan aksen pendukung.</small></label></div></div></section>
             <section class="website-setting-section"><div class="website-section-copy"><h3>Foto utama</h3><p>Gunakan foto outlet atau hasil laundry untuk area pembuka.</p></div><div class="website-image-editor"><img v-if="websiteHeroImagePreview || (websiteHeroImageUrl && !websiteClearHeroImage)" :src="websiteHeroImagePreview || websiteHeroImageUrl" alt="Pratinjau foto utama website" /><p v-else class="website-image-empty">Belum ada foto utama. Tampilan ilustrasi bawaan akan digunakan.</p><div class="website-image-actions"><label class="button secondary">{{ websiteHeroImageUrl || websiteHeroImagePreview ? 'Ganti foto' : 'Pilih foto' }}<input type="file" accept="image/png,image/jpeg,image/webp" @change="selectWebsiteHeroImage" /></label><button v-if="websiteHeroImageUrl || websiteHeroImagePreview" class="button secondary" type="button" @click="clearWebsiteHeroImage">Hapus foto</button></div><small>JPG, PNG, atau WebP. Maksimal 5 MB.</small></div></section>
             <section class="website-setting-section"><div class="website-section-copy"><h3>Galeri foto</h3><p>Unggah sampai 4 foto. Foto hanya tampil jika bagian galeri diaktifkan.</p></div><div class="website-image-editor"><div v-if="websiteGalleryImages.length" class="website-gallery-editor"><figure v-for="image in websiteGalleryImages" :key="image.url"><img :src="image.url" alt="Foto galeri website outlet" /><button type="button" aria-label="Hapus foto dari galeri" @click="removeWebsiteGalleryImage(image)">×</button></figure></div><p v-else class="website-image-empty">Belum ada foto galeri.</p><label v-if="websiteGalleryImages.length < 4" class="button secondary">Tambah foto<input type="file" accept="image/png,image/jpeg,image/webp" multiple @change="selectWebsiteGalleryImages" /></label><small>Maksimal 4 foto, JPG/PNG/WebP, 5 MB per foto.</small></div></section>
             <p v-if="websiteImageError" class="auth-error" role="alert">{{ websiteImageError }}</p>
@@ -481,7 +498,7 @@ watch(settingsTab, loadSettings, { immediate: true })
       </div>
       <div v-else-if="settingsTab === 'settings-staff'" class="settings-form-wrap">
         <div class="panel-heading"><div><h2>Akun pengguna</h2><p>Daftar owner dan karyawan aktif di outlet.</p></div><button class="button primary" type="button" @click="creatingEmployee = !creatingEmployee; employeeError = ''">{{ creatingEmployee ? 'Tutup form' : '+ Tambah karyawan' }}</button></div>
-        <p v-if="loadingSettings" class="empty-state">Memuat akunâ€¦</p><p v-else-if="settingsError" class="auth-error" role="alert">{{ settingsError }}</p>
+        <p v-if="loadingSettings" class="empty-state">Memuat akun…</p><p v-else-if="settingsError" class="auth-error" role="alert">{{ settingsError }}</p>
         <form v-if="creatingEmployee" class="staff-editor staff-create" @submit.prevent="createEmployee">
           <p class="staff-create-note">Akun baru dibuat dengan role <b>KASIR</b>. Password minimal 8 karakter.</p>
           <div class="staff-editor-fields">
@@ -492,13 +509,13 @@ watch(settingsTab, loadSettings, { immediate: true })
             <label>Konfirmasi kata sandi<input v-model="createEmployeeForm.password_confirmation" type="password" required minlength="8" autocomplete="new-password" /></label>
           </div>
           <p v-if="employeeError" class="auth-error" role="alert">{{ employeeError }}</p>
-          <div class="staff-editor-actions"><button class="button secondary" type="button" :disabled="creatingEmployeeBusy" @click="creatingEmployee = false">Batal</button><button class="button primary" type="submit" :disabled="creatingEmployeeBusy">{{ creatingEmployeeBusy ? 'Menyimpanâ€¦' : 'Buat akun kasir' }}</button></div>
+          <div class="staff-editor-actions"><button class="button secondary" type="button" :disabled="creatingEmployeeBusy" @click="creatingEmployee = false">Batal</button><button class="button primary" type="submit" :disabled="creatingEmployeeBusy">{{ creatingEmployeeBusy ? 'Menyimpan…' : 'Buat akun kasir' }}</button></div>
         </form>
         <div v-if="employees.length" class="staff-list">
           <article v-for="employee in employees" :key="employee.id" class="staff-member">
             <div class="staff-member-summary">
-              <div class="staff-member-identity"><b>{{ employee.name }}</b><small>@{{ employee.username }}<template v-if="employee.email"> Â· {{ employee.email }}</template></small></div>
-              <div class="staff-member-meta"><span class="category-tag">{{ employee.role }} Â· {{ employee.is_active ? 'Aktif' : 'Nonaktif' }}</span><button class="small-action" type="button" :aria-expanded="editingEmployeeId === employee.id" @click="editEmployee(employee)">{{ editingEmployeeId === employee.id ? 'Tutup' : 'Edit' }}</button></div>
+              <div class="staff-member-identity"><b>{{ employee.name }}</b><small>@{{ employee.username }}<template v-if="employee.email"> · {{ employee.email }}</template></small></div>
+              <div class="staff-member-meta"><span class="category-tag">{{ employee.role }} · {{ employee.is_active ? 'Aktif' : 'Nonaktif' }}</span><button class="small-action" type="button" :aria-expanded="editingEmployeeId === employee.id" @click="editEmployee(employee)">{{ editingEmployeeId === employee.id ? 'Tutup' : 'Edit' }}</button></div>
             </div>
             <form v-if="editingEmployeeId === employee.id" class="staff-editor" @submit.prevent="saveEmployee(employee)">
               <div class="staff-editor-fields">
@@ -511,13 +528,27 @@ watch(settingsTab, loadSettings, { immediate: true })
               </div>
               <div class="staff-editor-bottom"><label class="staff-active-toggle"><input v-model="employeeForm.is_active" type="checkbox" :disabled="Number(session?.id) === Number(employee.id)" /><span>Akun aktif</span></label><small v-if="Number(session?.id) === Number(employee.id)" class="staff-self-note">Akun Anda sendiri tidak dapat dinonaktifkan.</small></div>
               <p v-if="employeeError" class="auth-error" role="alert">{{ employeeError }}</p>
-              <div class="staff-editor-actions"><button class="button secondary" type="button" :disabled="savingEmployeeId !== null" @click="editingEmployeeId = null">Batal</button><button class="button primary" type="submit" :disabled="savingEmployeeId !== null">{{ savingEmployeeId === employee.id ? 'Menyimpanâ€¦' : 'Simpan perubahan' }}</button></div>
+              <div class="staff-editor-actions"><button class="button secondary" type="button" :disabled="savingEmployeeId !== null" @click="editingEmployeeId = null">Batal</button><button class="button primary" type="submit" :disabled="savingEmployeeId !== null">{{ savingEmployeeId === employee.id ? 'Menyimpan…' : 'Simpan perubahan' }}</button></div>
             </form>
           </article>
         </div>
         <div v-else-if="!creatingEmployee" class="empty-state"><b>Belum ada akun outlet</b><span>Akun owner dan karyawan akan muncul di sini.</span></div>
       </div>
-      <div v-else class="settings-placeholder"><span class="settings-placeholder-mark"><span aria-hidden="true">i</span></span><h2>{{ selectedTitle() }}</h2><p>Ukuran dan teks nota tersimpan pada profil outlet. Cetak fisik dan koneksi printer memerlukan perangkat cetak.</p><span class="category-tag">Pengaturan printer perangkat belum tersedia</span></div>
+      <div v-else-if="settingsTab === 'settings-printer'" class="printer-settings-wrap">
+        <div class="panel-heading"><div><h2>Printer</h2><p>Kelola koneksi printer thermal dan kirim tes cetak dari perangkat ini.</p></div></div>
+        <p v-if="loadingSettings" class="empty-state" role="status">Memuat profil cetak…</p>
+        <p v-else-if="settingsError" class="auth-error" role="alert">{{ settingsError }}</p>
+        <template v-else>
+          <BlePrinterPanel />
+          <form class="printer-format-settings" @submit.prevent="savePrinterSettings">
+            <div><h3>Format nota</h3><p>Pengaturan ini dipakai saat mencetak lewat BLE maupun browser.</p></div>
+            <label>Lebar kertas<select v-model="profile.receipt_width"><option value="58mm">58 mm</option><option value="80mm">80 mm</option></select></label>
+            <label>Catatan kaki nota<textarea v-model="profile.receipt_footer" maxlength="500" rows="3" placeholder="Terima kasih telah menggunakan layanan kami." /><small>Maksimal 500 karakter.</small></label>
+            <div class="printer-format-actions"><button class="button primary" type="submit" :disabled="savingPrinterSettings">{{ savingPrinterSettings ? 'Menyimpan…' : 'Simpan format nota' }}</button></div>
+          </form>
+        </template>
+      </div>
+      <div v-else class="settings-placeholder"><span class="settings-placeholder-mark"><span aria-hidden="true">i</span></span><h2>{{ selectedTitle() }}</h2><p>Pengaturan untuk bagian ini belum tersedia.</p></div>
     </section>
   </div>
 </template>

@@ -13,6 +13,8 @@ import ProcessPage from '../pages/ProsesLaundry/ProcessPage.vue'
 import ReportsPage from '../pages/Laporan/ReportsPage.vue'
 import SettingsPage from '../pages/Pengaturan/SettingsPage.vue'
 import TransactionCreateModal from '../pages/Transaksi/components/TransactionCreateModal.vue'
+import { buildLaundryReceiptBytes } from '../services/ble-thermal-printer.js'
+import { useBleThermalPrinter } from '../services/useBleThermalPrinter.js'
 
 const today = new Date()
 const dateLabel = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(today)
@@ -58,6 +60,8 @@ const reportType = ref('report-sales')
 const settingsTab = ref('settings-services')
 const toast = ref({ message: '', type: 'info' })
 const saving = reactive({ transaction: false, expense: false, service: false, payment: false, status: new Set() })
+const { errorMessage: printerError, isConnected: isBlePrinterConnected, reconnectRememberedPrinter, sendBytes: sendBleBytes } = useBleThermalPrinter()
+const preparingBleReceipt = ref(false)
 let toastTimeout
 const showForm = ref(false)
 const search = ref('')
@@ -276,6 +280,23 @@ function escapeReceiptText(value) {
   return String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character])
 }
 async function printReceipt(t) {
+  if (isBlePrinterConnected.value) {
+    if (preparingBleReceipt.value) return
+    preparingBleReceipt.value = true
+    try {
+      let profile = { store_name: activeOutlet.value?.nama || session.value?.outlet?.nama || 'Laundrian', phone: '', address: '', receipt_footer: 'Terima kasih telah menggunakan layanan kami.', receipt_width: '58mm' }
+      try { profile = { ...profile, ...(await requestApi('/pengaturan')).data } } catch { /* Struk memakai identitas outlet dasar bila profil gagal dimuat. */ }
+      const member = data.value.customers.find(customer => Number(customer.id) === Number(t.customerId))
+      const columns = profile.receipt_width === '80mm' ? 48 : 32
+      const bytes = buildLaundryReceiptBytes({ transaction: t, profile, member, money, columns, cashierName: session.value?.name || '' })
+      const sent = await sendBleBytes(bytes, 'Struk berhasil dikirim ke printer BLE.', 'Struk BLE gagal dikirim.')
+      notify(sent ? 'Struk berhasil dikirim ke printer BLE.' : printerError.value || 'Struk BLE gagal dikirim.', sent ? 'success' : 'error')
+    } catch (error) {
+      notify(`Nota gagal disiapkan untuk printer: ${error.message}`, 'error')
+    } finally { preparingBleReceipt.value = false }
+    return
+  }
+
   const printWindow = window.open('', '_blank', 'popup,width=420,height=720')
   if (!printWindow) { notify('Izinkan pop-up untuk mencetak nota', 'error'); return }
 
@@ -302,11 +323,12 @@ async function printReceipt(t) {
   const memberInfo = member?.memberPromoActive
     ? `<section class="member"><b>PROGRES MEMBER ${memberCount}/${memberTarget}</b><span>${memberCount >= memberTarget ? `Potongan ${memberPercent}% siap untuk transaksi berikutnya.` : `Kurang ${memberTarget - memberCount} transaksi lagi dengan minimal ${escapeReceiptText(money(memberMinimum))} untuk mendapat potongan ${memberPercent}%.`}</span>${t.memberPromoEligible && !alreadyCounted ? '<small>Progres dihitung setelah transaksi lunas dan diambil.</small>' : ''}</section>`
     : ''
+  const cashierName = session.value?.name ? `<div><span>Kasir</span><b>${escapeReceiptText(session.value.name)}</b></div>` : ''
   const breakdown = `${t.discount ? `<div><span>Diskon</span><span>− ${escapeReceiptText(money(t.discount))}</span></div>` : ''}${t.memberDiscount ? `<div><span>Diskon member ${t.memberDiscountPercent || 20}%</span><span>− ${escapeReceiptText(money(t.memberDiscount))}</span></div>` : ''}${t.shipping ? `<div><span>Ongkir</span><span>${escapeReceiptText(money(t.shipping))}</span></div>` : ''}`
   printWindow.document.open()
-  printWindow.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nota ${escapeReceiptText(t.id)}</title><style>
-    *{box-sizing:border-box}body,body *{color:#000!important}body{width:${width};margin:0 auto;padding:5mm 3mm;color:#222;font:8px/1.45 Arial,sans-serif}h1{margin:0;text-align:center;font-size:10px}header{text-align:center;padding-bottom:10px;border-bottom:1px dashed #777}header p{margin:3px 0;font-size:8px}.meta{padding:9px 0;border-bottom:1px dashed #777}.meta div,.totals div{display:flex;justify-content:space-between;gap:8px}.meta span:first-child{color:#555}table{width:100%;border-collapse:collapse;padding:6px 0}td{padding:7px 0;vertical-align:top}td:first-child{padding-right:8px}td:last-child{text-align:right;white-space:nowrap}td small{display:block;color:#555;font-size:8px}.totals{padding:8px 0;border-top:1px dashed #777}.totals div{margin:3px 0}.totals .grand{padding-top:6px;border-top:1px solid #999;font-size:10px;font-weight:700}.totals .paid{margin-top:6px}.member{margin:8px 0;padding:7px 0;border-top:1px dashed #777;border-bottom:1px dashed #777}.member b,.member span,.member small{display:block}.member b{font-size:8px}.member span{margin-top:3px}.member small{margin-top:3px;font-size:8px;color:#555}.footer{padding-top:10px;border-top:1px dashed #777;text-align:center;white-space:pre-line;font-size:8px}.no-print{display:block;margin:12px auto 0;padding:8px 14px;border:0;border-radius:5px;background:#edc83e;font-weight:700}@media print{body{width:${width};padding:0}.no-print{display:none}}
-    </style></head><body><header><h1>${escapeReceiptText(profile.store_name || profile.nama || 'Londriap App')}</h1>${profile.address ? `<p>${escapeReceiptText(profile.address)}</p>` : ''}${profile.phone ? `<p>${escapeReceiptText(profile.phone)}</p>` : ''}</header><section class="meta"><div><span>No. nota</span><b>${escapeReceiptText(t.id)}</b></div><div><span>Pelanggan</span><b>${escapeReceiptText(t.customer)}</b></div>${t.phone && t.phone !== '-' ? `<div><span>Telepon</span><span>${escapeReceiptText(t.phone)}</span></div>` : ''}<div><span>Tanggal</span><span>${escapeReceiptText(date)}</span></div></section><table><tbody>${details}</tbody></table><section class="totals">${t.subtotal && t.subtotal !== t.total ? `<div><span>Subtotal</span><span>${escapeReceiptText(money(t.subtotal))}</span></div>` : ''}${breakdown}<div class="grand"><span>Total</span><span>${escapeReceiptText(money(t.total))}</span></div><div class="paid"><span>Sudah dibayar</span><span>${escapeReceiptText(money(t.paid))}</span></div><div><span>Sisa tagihan</span><span>${escapeReceiptText(money(Math.max(0, t.total - t.paid)))}</span></div></section>${memberInfo}${t.note ? `<p><b>Catatan:</b> ${escapeReceiptText(t.note)}</p>` : ''}<footer class="footer">${escapeReceiptText(profile.receipt_footer || 'Terima kasih telah menggunakan layanan kami.')}</footer><button class="no-print" onclick="window.print()">Cetak nota</button><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),250))<\/script></body></html>`)
+  printWindow.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nota ${escapeReceiptText(t.id)}</title><style>@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+    *{box-sizing:border-box}body,body *{color:#000!important}body{width:${width};margin:0 auto;padding:3mm;color:#000;font:8px/1.35 Poppins,Arial,sans-serif}h1{margin:0;text-align:center;font-size:10px}header{text-align:center;padding-bottom:6px;border-bottom:1px dashed #000}header p{margin:3px 0;font-size:8px}.meta{padding:6px 0;border-bottom:1px dashed #000}.meta div,.totals div{display:flex;justify-content:space-between;gap:8px}.meta span:first-child{color:#555}table{width:100%;border-collapse:collapse;margin:5px 0}td{padding:3px 0;vertical-align:top}td:first-child{padding-right:8px}td:last-child{text-align:right;white-space:nowrap}td small{display:block;color:#555;font-size:8px}.totals{padding:6px 0;border-top:1px dashed #000}.totals div{margin:2px 0}.totals .grand{padding-top:4px;border-top:1px solid #000;font-size:10px;font-weight:700}.totals .paid{margin-top:6px}.member{margin:8px 0;padding:7px 0;border-top:1px dashed #000;border-bottom:1px dashed #000}.member b,.member span,.member small{display:block}.member b{font-size:8px}.member span{margin-top:3px}.member small{margin-top:3px;font-size:8px;color:#555}.footer{padding-top:6px;border-top:1px dashed #000;text-align:center;white-space:pre-line;font-size:8px}.powered-by{margin:4px 0 0;text-align:center;font-size:8px}.no-print{display:block;margin:12px auto 0;padding:8px 14px;border:0;border-radius:5px;background:#117dea;color:#fff;font-weight:700}@media print{body{width:${width};padding:3mm}.no-print{display:none}}
+    </style></head><body><header><h1>${escapeReceiptText(profile.store_name || profile.nama || 'Londriap App')}</h1>${profile.address ? `<p>${escapeReceiptText(profile.address)}</p>` : ''}${profile.phone ? `<p>${escapeReceiptText(profile.phone)}</p>` : ''}</header><section class="meta"><div><span>No. nota</span><b>${escapeReceiptText(t.id)}</b></div><div><span>Tanggal</span><span>${escapeReceiptText(date)}</span></div><div><span>Pelanggan</span><b>${escapeReceiptText(t.customer)}</b></div>${t.phone && t.phone !== '-' ? `<div><span>Telepon</span><span>${escapeReceiptText(t.phone)}</span></div>` : ''}${cashierName}</section><table><tbody>${details}</tbody></table><section class="totals"><div><span>Subtotal</span><span>${escapeReceiptText(money(t.subtotal ?? t.total))}</span></div>${breakdown}<div class="grand"><span>Total</span><span>${escapeReceiptText(money(t.total))}</span></div><div class="paid"><span>Sudah dibayar</span><span>${escapeReceiptText(money(t.paid))}</span></div><div><span>Sisa tagihan</span><span>${escapeReceiptText(money(Math.max(0, t.total - t.paid)))}</span></div><div><span>Status bayar</span><span>${escapeReceiptText(t.paymentStatus || 'BELUM BAYAR')}</span></div></section>${memberInfo}${t.note ? `<p><b>Catatan:</b> ${escapeReceiptText(t.note)}</p>` : ''}<footer class="footer">${escapeReceiptText(profile.receipt_footer || 'Terima kasih telah menggunakan layanan kami.')}</footer><p class="powered-by">Powered by Udumbara Informatika</p><button class="no-print" onclick="window.print()">Cetak nota</button><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),250))<\/script></body></html>`)
   printWindow.document.close()
   printWindow.focus()
 }
@@ -320,6 +342,7 @@ async function recordPayment(transaction, amount, method, note = null) {
   provide('laundrian', { dateLabel, data, dashboard, money, revenueToday, outstanding, countStatus, setPage, printReceipt, paymentStatus, statusFilter, serviceFilter, paymentFilter, transactionFrom, transactionTo, filteredTransactions, nextStatus, search, notify, saving, openExpenseForm, showForm, form, selectedService, lineTotal, subtotal, total, addTransactionItem, removeTransactionItem, createTransaction, showExpenseForm, expenseForm, saveExpense, showServiceForm, serviceForm, addService, saveService, settingsTab, reportType, menu, recordPayment, session, busy, pageError, loadOperationalData, refreshOutletBranding })
 onMounted(async () => {
   document.addEventListener('click', closeSidebarOnOutsideClick)
+  void reconnectRememberedPrinter()
   try {
     const result = await requestApi('/me'); session.value = result.data.user
     if (session.value.role === 'SUPERADMIN') adminOutlets.value = (await requestApi('/superadmin/outlets')).data || []
