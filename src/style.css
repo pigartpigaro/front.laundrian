@@ -729,12 +729,19 @@ body{background:#faf9f5;color:#353126}
 .website-marketing-service>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;color:#514d40;font-size:12px}
 .website-marketing-service-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,.45fr);gap:10px}
 .website-marketing-service-fields label{display:grid;gap:5px;min-width:0;color:#514d40;font-size:11px;font-weight:600}
-.website-marketing-service-fields input,.website-marketing-service-fields select,.website-marketing-service-fields textarea{width:100%;min-height:38px;padding:8px 10px;border:1px solid #e5dfd0;border-radius:6px;background:#fff;color:#39372e;font-size:13px}
+.website-marketing-service-fields input,.website-marketing-service-fields textarea{width:100%;min-height:38px;padding:8px 10px;border:1px solid #e5dfd0;border-radius:6px;background:#fff;color:#39372e;font-size:13px}
 .website-marketing-service-fields textarea{min-height:82px;resize:vertical;line-height:1.5}
-.website-marketing-service-fields input:focus,.website-marketing-service-fields select:focus,.website-marketing-service-fields textarea:focus,.website-service-title input:focus{outline:2px solid #bd9200;outline-offset:1px}
+.website-marketing-service-fields input:focus,.website-marketing-service-fields textarea:focus,.website-service-title input:focus{outline:2px solid #bd9200;outline-offset:1px}
+.website-icon-picker{grid-column:1/-1;display:grid;grid-template-columns:repeat(5,minmax(52px,68px));gap:9px;margin:0;padding:0;border:0}
+.website-icon-picker legend{margin-bottom:6px;color:#514d40;font-size:11px;font-weight:600}
+.website-icon-picker button{width:68px;height:68px;padding:2px;border:1px solid #e5dfd0;border-radius:10px;background:#fff;cursor:pointer;transition:border-color .15s ease,background-color .15s ease,transform .15s ease}
+.website-icon-picker button:hover{border-color:#bd9200;background:#fffaf0}
+.website-icon-picker button.selected{border:2px solid #bd9200;background:#fff8e2;box-shadow:0 0 0 2px #bd920022}
+.website-icon-picker button:focus-visible{outline:3px solid #bd9200;outline-offset:2px}
+.website-icon-choice{display:block;width:100%;height:100%;border-radius:7px;object-fit:contain}
 .website-service-description{grid-column:1/-1}
 .website-service-editor>.button{justify-self:start}
 .website-service-editor>.button span{margin-left:8px;color:#817b6b;font-size:11px}
 .website-service-editor>.button:disabled{opacity:.55;cursor:not-allowed}
 .website-service-editor .website-service-empty{padding:10px 0}
-@media(max-width:700px){.website-marketing-service{padding:12px}.website-marketing-service-fields{grid-template-columns:1fr}.website-marketing-service-fields label{font-size:14px}.website-marketing-service-fields input,.website-marketing-service-fields select,.website-marketing-service-fields textarea{font-size:16px}.website-marketing-service>header{font-size:14px}.website-service-editor>.button{min-height:40px;font-size:14px}}
+@media(max-width:700px){.website-marketing-service{padding:12px}.website-marketing-service-fields{grid-template-columns:1fr}.website-marketing-service-fields label{font-size:14px}.website-marketing-service-fields input,.website-marketing-service-fields textarea{font-size:16px}.website-icon-picker{grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}.website-icon-picker button{width:100%;height:auto;aspect-ratio:1}.website-icon-picker legend{font-size:14px}.website-marketing-service>header{font-size:14px}.website-service-editor>.button{min-height:40px;font-size:14px}}
